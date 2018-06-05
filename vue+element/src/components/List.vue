@@ -1,14 +1,18 @@
 <template>
   <div>
-    <el-input class="search" v-model="search_id" placeholder="根据ID查询"></el-input>
-    <el-input class="search" v-model="search_username" placeholder="根据姓名查询"></el-input>
-    <el-button type="primary" @click="getList()">查询</el-button>
-    <el-button type="success" @click="addUser()">新增</el-button>
+    <div style="margin-top:10px">
+      <el-input class="search" v-model="search_id" placeholder="根据ID查询"></el-input>
+      <el-input class="search" v-model="search_username" placeholder="根据姓名查询"></el-input>
+      <el-button type="primary" @click="getList()">查询</el-button>
+    </div>
       <el-table
         stripe
         :data="userlist.slice((currentPage-1)*pagesize,currentPage*pagesize)"
-        style=""
+        :border = true
+        style="margin-top:15px"
+        @selection-change="handleSelectionChange"
         >
+        <el-table-column type="selection" width="40px"></el-table-column>
         <el-table-column prop="id" label="ID"></el-table-column>
         <el-table-column prop="userName" label="姓名"></el-table-column>
         <el-table-column prop="password" label="密码"></el-table-column>
@@ -24,7 +28,6 @@
       title="新增用户"
       :visible.sync="dialogVisible"
       width="30%"
-      :before-close="handleClose"
       style="">
       <el-form :model="ruleForm" :rules="rules" ref="ruleForm" label-width="100px" class="demo-ruleForm">
         <el-form-item label="用户ID" prop="id">
@@ -41,16 +44,6 @@
           <span><el-button style="margin-top:20px" type="success" @click="resetForm('ruleForm')">重置</el-button></span>
         </div>
       </el-form>
-
-      <!-- <ul>
-        <li style="list-style-type:none;text-align:center"><el-input style="width:200px" v-model="add_id" placeholder="请填写用户ID"></el-input></li>
-        <li style="list-style-type:none;text-align:center"><el-input style="margin-top:20px;width:200px" v-model="add_username" placeholder="请填写用户用户姓名"></el-input></li>
-        <li style="list-style-type:none;text-align:center"><el-input style="margin-top:20px;width:200px" v-model="add_password" placeholder="请填写用户密码"></el-input></li>
-        <li style="list-style-type:none;text-align:center">
-          <el-button style="margin-top:20px" type="primary" @click="saveUser(row)">保存</el-button>
-          <span><el-button style="margin-top:20px" type="success" @click="resetAdd()">重置</el-button></span>
-        </li>
-      </ul> -->
     </el-dialog> 
 
     <!-- 修改弹出框 -->
@@ -58,7 +51,6 @@
       title="修改用户"
       :visible.sync="dialogVisibleEdit"
       width="30%"
-      :before-close="handleClose"
       style="">
       <el-form :model="ruleForm2" :rules="rules" ref="ruleForm" label-width="100px" class="demo-ruleForm">
         <el-form-item label="用户ID" prop="id">
@@ -75,16 +67,6 @@
           <span><el-button style="margin-top:20px" type="success" @click="resetForm('ruleForm')">重置</el-button></span>
         </div>
       </el-form>
-
-      <!-- <ul>
-        <li style="list-style-type:none;text-align:center"><el-input style="width:200px" v-model="upd_id" placeholder="请填写用户ID" readonly="true"></el-input></li>
-        <li style="list-style-type:none;text-align:center"><el-input style="margin-top:20px;width:200px" v-model="upd_username" placeholder="请填写用户用户姓名"></el-input></li>
-        <li style="list-style-type:none;text-align:center"><el-input style="margin-top:20px;width:200px" v-model="upd_password" placeholder="请填写用户密码"></el-input></li>
-        <li style="list-style-type:none;text-align:center">
-          <el-button style="margin-top:20px" type="primary" @click="updUser()">修改</el-button>
-          <span><el-button style="margin-top:20px" type="success" @click="resetEdit()">重置</el-button></span>
-        </li>
-      </ul> -->
     </el-dialog>
 
     <!-- 删除确认弹出框 -->
@@ -92,7 +74,6 @@
       title="删除用户"
       :visible.sync="dialogVisibleDelete"
       width="30%"
-      :before-close="handleClose"
       style="">
       <span>删了就没了，确定吗?</span>
       <ul>
@@ -103,16 +84,19 @@
       </ul>
     </el-dialog> 
 
-    <div class="" style="text-align:center;margin-top:10px">
-        <el-pagination
-          @size-change="handleSizeChange"
-          @current-change="handleCurrentChange"
-          :current-page="currentPage"
-          :page-sizes="[10]"
-          :page-size="pagesize"
-          layout="total, sizes, prev, pager, next, jumper"
-          :total=parseInt(total)>
-        </el-pagination>
+    <div class="" style="text-align:center;margin-top:20px">
+      <el-button style="float:left" size="mini" type="success" @click="addUser()">新增</el-button>
+      <el-button style="float:left" size="mini" type="danger" @click="batchDelete()">批量删除</el-button>
+      <el-pagination
+        style="float:right"
+        @size-change="handleSizeChange"
+        @current-change="handleCurrentChange"
+        :current-page="currentPage"
+        :page-sizes="[10]"
+        :page-size="pagesize"
+        layout="total, sizes, prev, pager, next, jumper"
+        :total=parseInt(total)>
+      </el-pagination>
     </div>
   </div>
 </template>
@@ -142,6 +126,8 @@
         upd_username:'',
         upd_password:'',
         deleteId:'',
+        activeName: 'second',
+        multipleSelection: [],
         //表单
         ruleForm:{
           id:'',
@@ -264,17 +250,30 @@
           })
         },
 
-        // resetAdd(){
-        //   this.add_id = ''
-        //   this.add_username = ''
-        //   this.add_password = ''
-        // },
+        handleSelectionChange(val){
+          this.multipleSelection = val
+        },
 
-        // resetEdit(){
-        //   this.upd_id = ''
-        //   this.upd_username = ''
-        //   this.upd_password = ''
-        // },
+        // 批量删除
+        batchDelete(){
+          if(this.multipleSelection == ''){
+            this.$message('至少选择一条！')
+          }else{
+            this.multipleSelection.forEach(selectedItem => {
+            var deleteId = selectedItem.id
+            const params = {
+              deleteId
+          }
+            this.axios.post('/api/delete',params).then(response =>{
+              this.$message('删除成功')
+              this.dialogVisibleDelete = false
+              this.getList()
+            }).catch(err =>{
+              this.$message('删除失败')
+            })
+          })
+          }
+        },
 
         resetForm(formName) {
         this.$refs[formName].resetFields();
@@ -292,6 +291,9 @@
               done();
             })
             .catch(_ => {});
+      },
+        handleClick(tab, event) {
+          //这里是点击标签页事件
       }
     },
   }
@@ -300,5 +302,9 @@
 <style>
 .search{
     width:200px
+}
+.el-table th{
+  background-color: #A6B3C1;
+  color: aliceblue
 }
 </style>

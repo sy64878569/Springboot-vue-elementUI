@@ -1,11 +1,5 @@
 <template>
-  <el-row>
-    <el-col :span="24">
-      <div class="head-wrap">Element</div>
-    </el-col>
-  </el-row>
+    <span style="vertical-align：middle;font-family:Microsoft YaHei;font-size:25px">☆ 资产管理软件</span>
 </template>
-
 <style scoped>
-
 </style>

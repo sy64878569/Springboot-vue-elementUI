@@ -6,14 +6,18 @@ import VueRouter from 'vue-router'
 import menus from '@/config/menu-config'
 import router from './router/index.js'
 import axios from 'axios'
+import store from './store'
 
-Vue.use(ElementUI)
 Vue.use(VueRouter)
+Vue.use(ElementUI)
+
+
 Vue.prototype.axios = axios
 
 new Vue({
   el: '#app',
   router,
+  store,
   render: h => h(App)
 })
 
